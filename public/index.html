@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎲 Monopoly Online</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- LOBBY SCREEN -->
+  <div id="screen-lobby" class="screen active">
+    <div class="lobby-bg">
+      <div class="lobby-card">
+        <div class="logo">
+          <span class="logo-icon">🎲</span>
+          <h1>MONOPOLY</h1>
+          <p class="logo-sub">Online Multiplayer</p>
+        </div>
+        <div class="lobby-actions">
+          <button id="btn-create" class="btn btn-primary">Create New Game</button>
+          <div class="divider"><span>or</span></div>
+          <div class="join-form">
+            <input type="text" id="join-code" placeholder="Enter Room Code" maxlength="8">
+            <button id="btn-join" class="btn btn-secondary">Join Room</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYER SETUP SCREEN -->
+  <div id="screen-setup" class="screen">
+    <div class="setup-container">
+      <div class="setup-card">
+        <h2>Join Game</h2>
+        <div class="room-info">
+          <span id="setup-room-label">Room: <strong id="setup-room-id"></strong></span>
+          <button id="btn-copy-link" class="btn-icon" title="Copy invite link">📋 Copy Link</button>
+        </div>
+        <div class="setup-form">
+          <div class="form-group">
+            <label>Your Name</label>
+            <input type="text" id="player-name" placeholder="Enter your name" maxlength="16">
+          </div>
+          <div class="form-group">
+            <label>Choose Token</label>
+            <div class="token-grid" id="token-grid"></div>
+          </div>
+          <div class="form-group">
+            <label>Choose Color</label>
+            <div class="color-grid" id="color-grid"></div>
+          </div>
+          <button id="btn-enter-room" class="btn btn-primary">Enter Room</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WAITING ROOM SCREEN -->
+  <div id="screen-waiting" class="screen">
+    <div class="waiting-container">
+      <div class="waiting-card">
+        <h2>🎲 Waiting Room</h2>
+        <div class="invite-box">
+          <span>Invite Friends:</span>
+          <code id="invite-url"></code>
+          <button id="btn-copy-invite" class="btn-sm">📋 Copy</button>
+        </div>
+        <div class="players-list" id="waiting-players"></div>
+        <div class="waiting-footer">
+          <p id="waiting-status">Waiting for players... (2-4 players needed)</p>
+          <button id="btn-start-game" class="btn btn-primary" style="display:none">🎲 Start Game</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="screen-game" class="screen">
+    <div class="game-layout">
+      <!-- Left Panel: Players -->
+      <div class="panel panel-left">
+        <div class="panel-header">Players</div>
+        <div id="players-panel"></div>
+      </div>
+
+      <!-- Board -->
+      <div class="board-wrap">
+        <div class="board" id="board"></div>
+        <div class="board-center">
+          <div class="board-logo">
+            <div class="board-logo-text">MONOPOLY</div>
+          </div>
+          <div id="action-center">
+            <div id="dice-display" class="dice-display hidden">
+              <div class="die" id="die1">1</div>
+              <div class="die" id="die2">1</div>
+            </div>
+            <div id="action-buttons">
+              <button id="btn-roll" class="btn btn-roll hidden">🎲 Roll Dice</button>
+              <button id="btn-end-turn" class="btn btn-end hidden">End Turn ➡️</button>
+              <button id="btn-buy" class="btn btn-buy hidden">💰 Buy Property</button>
+              <button id="btn-decline" class="btn btn-decline hidden">❌ Decline</button>
+              <button id="btn-pay-jail" class="btn btn-jail hidden">💸 Pay $50 Fine</button>
+              <button id="btn-jail-card" class="btn btn-jail hidden">🃏 Use Jail Card</button>
+            </div>
+            <div id="card-popup" class="card-popup hidden"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Log + Properties -->
+      <div class="panel panel-right">
+        <div class="panel-tabs">
+          <button class="tab-btn active" data-tab="log">📜 Log</button>
+          <button class="tab-btn" data-tab="props">🏠 My Properties</button>
+        </div>
+        <div id="tab-log" class="tab-content active">
+          <div id="game-log"></div>
+        </div>
+        <div id="tab-props" class="tab-content">
+          <div id="my-properties"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Property Modal -->
+    <div id="property-modal" class="modal hidden">
+      <div class="modal-content">
+        <button class="modal-close" id="modal-close">✕</button>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Winner Overlay -->
+    <div id="winner-overlay" class="winner-overlay hidden">
+      <div class="winner-card">
+        <div class="winner-trophy">🏆</div>
+        <h2 id="winner-name"></h2>
+        <p>wins the game!</p>
+        <button id="btn-play-again" class="btn btn-primary">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast-container"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/boardRenderer.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -104,7 +104,7 @@ class GameEngine {
     this.movePlayer(player, total);
     const result = this.landOnSpace(player);
     
-    if (!result.pendingAction) {
+    if (!this.pendingAction) {
       this.turnState = isDoubles ? 'roll' : 'end_turn';
       if (isDoubles) {
         result.message = (result.message || '') + ' Roll again (doubles)!';

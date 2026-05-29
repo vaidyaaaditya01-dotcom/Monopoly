@@ -159,9 +159,12 @@ function renderBoard(boardSpaces, gameState) {
         tokensDiv.className = 'board-tokens';
         playersHere.forEach(p => {
           const t = document.createElement('div');
-          t.className = 'board-token';
-          t.textContent = p.token;
+          t.className = 'board-token player-piece';
+          t.style.background = p.color;
+          t.style.borderColor = 'rgba(255,255,255,0.8)';
+          t.textContent = p.name.charAt(0).toUpperCase();
           t.title = p.name;
+          t.dataset.playerId = p.id;
           tokensDiv.appendChild(t);
         });
         cell.appendChild(tokensDiv);

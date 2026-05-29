@@ -394,42 +394,93 @@ function animateDice(diceResult) {
   setTimeout(() => { d1.classList.remove('rolling'); d2.classList.remove('rolling'); }, 600);
 }
 
+// Get center coordinates of a board cell relative to board-wrap
+function getCellCenter(spaceId) {
+  const cell = document.querySelector(`[data-space-id="${spaceId}"]`);
+  const board = document.getElementById('board');
+  if (!cell || !board) return null;
+  const boardRect = board.getBoundingClientRect();
+  const cellRect = cell.getBoundingClientRect();
+  return {
+    x: cellRect.left - boardRect.left + cellRect.width / 2,
+    y: cellRect.top - boardRect.top + cellRect.height / 2
+  };
+}
+
 function animatePlayerMovement(playerId, fromPos, toPos, prevState, finalState, onComplete) {
   const TOTAL_SPACES = 40;
+
   // Build step sequence
-  let steps = [];
+  let steps = [fromPos];
   if (toPos >= fromPos) {
     for (let i = fromPos + 1; i <= toPos; i++) steps.push(i % TOTAL_SPACES);
   } else {
-    // Passed GO
     for (let i = fromPos + 1; i < TOTAL_SPACES; i++) steps.push(i);
     for (let i = 0; i <= toPos; i++) steps.push(i);
   }
-  if (steps.length === 0) { onComplete(); return; }
 
-  let stepIndex = 0;
-  const STEP_DELAY = 100; // ms per cell
+  if (steps.length <= 1) { setTimeout(onComplete, 200); return; }
 
-  function doStep() {
-    const currentPos = steps[stepIndex];
-    const isLast = stepIndex === steps.length - 1;
+  const player = finalState.players.find(p => p.id === playerId);
+  if (!player) { onComplete(); return; }
 
-    // Build a temporary state with player at currentPos
-    const tmpState = JSON.parse(JSON.stringify(isLast ? finalState : prevState));
-    const tmpPlayer = tmpState.players.find(p => p.id === playerId);
-    if (tmpPlayer) tmpPlayer.position = currentPos;
+  // Render the board first (without the moving player at final pos)
+  const startState = JSON.parse(JSON.stringify(prevState));
+  renderBoard(startState.boardSpaces, startState);
 
-    renderBoard(tmpState.boardSpaces, tmpState);
+  // Create a floating piece overlay
+  const boardEl = document.getElementById('board');
+  const boardWrap = document.querySelector('.board-wrap');
+  if (!boardEl || !boardWrap) { onComplete(); return; }
 
-    stepIndex++;
-    if (stepIndex < steps.length) {
-      setTimeout(doStep, STEP_DELAY);
-    } else {
-      setTimeout(onComplete, 200);
-    }
+  const piece = document.createElement('div');
+  piece.className = 'player-piece floating-piece';
+  piece.style.background = player.color;
+  piece.style.borderColor = 'rgba(255,255,255,0.8)';
+  piece.textContent = player.name.charAt(0).toUpperCase();
+  piece.style.position = 'absolute';
+  piece.style.zIndex = '20';
+  piece.style.pointerEvents = 'none';
+  piece.style.transition = 'left 0.18s cubic-bezier(0.4,0,0.2,1), top 0.18s cubic-bezier(0.4,0,0.2,1)';
+  piece.style.width = '18px';
+  piece.style.height = '18px';
+  piece.style.fontSize = '9px';
+  piece.style.fontWeight = '800';
+  piece.style.borderWidth = '2px';
+  piece.style.borderStyle = 'solid';
+  piece.style.boxShadow = '0 2px 8px rgba(0,0,0,0.6)';
+  boardWrap.appendChild(piece);
+
+  // Position at start
+  const startCenter = getCellCenter(steps[0]);
+  if (startCenter) {
+    piece.style.left = (startCenter.x - 9) + 'px';
+    piece.style.top = (startCenter.y - 9) + 'px';
   }
 
-  setTimeout(doStep, 650); // wait for dice animation
+  let stepIndex = 1;
+  const STEP_DELAY = 160;
+
+  function doStep() {
+    if (stepIndex >= steps.length) {
+      // Final state render, remove overlay piece
+      boardWrap.removeChild(piece);
+      renderBoard(finalState.boardSpaces, finalState);
+      setTimeout(onComplete, 100);
+      return;
+    }
+    const pos = steps[stepIndex];
+    const center = getCellCenter(pos);
+    if (center) {
+      piece.style.left = (center.x - 9) + 'px';
+      piece.style.top = (center.y - 9) + 'px';
+    }
+    stepIndex++;
+    setTimeout(doStep, STEP_DELAY);
+  }
+
+  // Start after dice animation
+  setTimeout(doStep, 700);
 }
 
 function updateGameLog(gs) {

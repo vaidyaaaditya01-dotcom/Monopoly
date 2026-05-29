@@ -1,7 +1,7 @@
 // === MONOPOLY CLIENT APP ===
 
 const PLAYER_COLORS = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c'];
-const PLAYER_TOKENS = ['🎩','🚂','🛳️','🚗','🐕','🎠','🥾','🧲'];
+const PLAYER_TOKENS = ['A','B','C','D','E','F','G','H']; // initials fallback
 
 let socket = null;
 let myPlayerId = null;
@@ -57,12 +57,28 @@ function initSocket() {
   });
 
   socket.on('dice_rolled', (data) => {
+    const prevState = gameState;
     gameState = data.gameState;
     animateDice(data.gameState.diceResult);
-    setTimeout(() => {
-      updateGame(gameState);
-      handleGameEvent(data);
-    }, 600);
+    // Animate player movement step by step
+    const movedPlayer = data.gameState.players.find((p, i) => {
+      const prev = prevState && prevState.players[i];
+      return prev && prev.position !== p.position;
+    });
+    if (movedPlayer) {
+      const prevPlayer = prevState.players.find(p => p.id === movedPlayer.id);
+      const fromPos = prevPlayer ? prevPlayer.position : movedPlayer.position;
+      const toPos = movedPlayer.position;
+      animatePlayerMovement(movedPlayer.id, fromPos, toPos, prevState, data.gameState, () => {
+        updateGame(gameState);
+        handleGameEvent(data);
+      });
+    } else {
+      setTimeout(() => {
+        updateGame(gameState);
+        handleGameEvent(data);
+      }, 600);
+    }
   });
 
   socket.on('property_bought', (data) => {
@@ -243,8 +259,7 @@ function updateWaitingRoom(gs) {
     slot.className = 'player-slot';
     const isHostPlayer = i === 0;
     slot.innerHTML = `
-      <div class="token">${p.token}</div>
-      <div class="player-color-dot" style="background:${p.color}"></div>
+      <div class="player-piece-sm" style="background:${p.color}">${p.name.charAt(0).toUpperCase()}</div>
       <div class="pname">${p.name} ${p.id === myPlayerId ? '(you)' : ''}</div>
       ${isHostPlayer ? '<span class="host-badge">HOST</span>' : ''}
     `;
@@ -296,7 +311,7 @@ function updatePlayersPanel(gs) {
     card.innerHTML = `
       <div class="pc-header">
         <div class="turn-indicator ${i === gs.currentPlayerIndex ? '' : 'hidden'}"></div>
-        <div class="pc-token">${p.token}</div>
+        <div class="player-piece-sm" style="background:${p.color}">${p.name.charAt(0).toUpperCase()}</div>
         <div style="display:flex;flex-direction:column;gap:2px;flex:1">
           <div class="pc-name" style="color:${p.color}">${p.name}${p.id === myPlayerId ? ' ★' : ''}</div>
           <div class="pc-pos">${p.inJail ? '🔒 In Jail' : space?.name || ''}</div>
@@ -377,6 +392,44 @@ function animateDice(diceResult) {
   d1.textContent = diceResult.die1;
   d2.textContent = diceResult.die2;
   setTimeout(() => { d1.classList.remove('rolling'); d2.classList.remove('rolling'); }, 600);
+}
+
+function animatePlayerMovement(playerId, fromPos, toPos, prevState, finalState, onComplete) {
+  const TOTAL_SPACES = 40;
+  // Build step sequence
+  let steps = [];
+  if (toPos >= fromPos) {
+    for (let i = fromPos + 1; i <= toPos; i++) steps.push(i % TOTAL_SPACES);
+  } else {
+    // Passed GO
+    for (let i = fromPos + 1; i < TOTAL_SPACES; i++) steps.push(i);
+    for (let i = 0; i <= toPos; i++) steps.push(i);
+  }
+  if (steps.length === 0) { onComplete(); return; }
+
+  let stepIndex = 0;
+  const STEP_DELAY = 100; // ms per cell
+
+  function doStep() {
+    const currentPos = steps[stepIndex];
+    const isLast = stepIndex === steps.length - 1;
+
+    // Build a temporary state with player at currentPos
+    const tmpState = JSON.parse(JSON.stringify(isLast ? finalState : prevState));
+    const tmpPlayer = tmpState.players.find(p => p.id === playerId);
+    if (tmpPlayer) tmpPlayer.position = currentPos;
+
+    renderBoard(tmpState.boardSpaces, tmpState);
+
+    stepIndex++;
+    if (stepIndex < steps.length) {
+      setTimeout(doStep, STEP_DELAY);
+    } else {
+      setTimeout(onComplete, 200);
+    }
+  }
+
+  setTimeout(doStep, 650); // wait for dice animation
 }
 
 function updateGameLog(gs) {
